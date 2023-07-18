@@ -1,10 +1,23 @@
 import { GAME_STATUS, GAME_TIME, PAIRS_COUNT } from "../constants.js";
 import { getColorElementList, getColorListElement, getNotActiveElementList, getPlayAgainButton, getTimerElement } from "./selectors.js";
-import { getRandomColorPairs } from "./utils.js";
+import { getRandomColorPairs, showTimerText, createTimer, changeColorBackground } from "./utils.js";
 
 let selections = []
 let gameStatus = GAME_STATUS.PLAYING
-let time = GAME_TIME;
+let timer = createTimer ({
+  seconds: GAME_TIME,
+  onChange: handleTimerChange,
+  onFinish: handleTimerFinish,
+})
+function handleTimerChange (second) {
+  const fullSeconds = `0${second}s`.slice(-3)
+  showTimerText(fullSeconds)
+}
+function handleTimerFinish () {
+  gameStatus = GAME_STATUS.FINISHED
+  showTimerText('Game Over!')
+  showReplayButton()
+}
 
 function initColors () {
   const colorList = getRandomColorPairs(PAIRS_COUNT);
@@ -18,16 +31,6 @@ function initColors () {
 
   })
 }
-function showTimer (time){
-  const timerElement = getTimerElement()
-  if (!timerElement) return
-  if (typeof time === 'number') {
-  timerElement.textContent = `${time}s`
-}
-  if (typeof time === 'string') {
-  timerElement.textContent = `${time}`
-}
-}
 function showReplayButton () {
   const replayButtonElement = getPlayAgainButton()
   if (replayButtonElement) {
@@ -39,24 +42,6 @@ function hideReplayButton () {
   if (replayButtonElement) {
     replayButtonElement.style.display = 'none'
   }
-}
-
-function handleTimer () {
-  let timer = setInterval(function () {
-    showTimer(time)
-    time = time -1
-    if (gameStatus.includes(GAME_STATUS.FINISHED)) {
-      clearTimeout(timer)
-      showTimer('You Win!')
-    }
-    if (time < 0 ) {
-      gameStatus = GAME_STATUS.FINISHED
-      clearTimeout(timer)
-      showTimer('Game over')
-      showReplayButton()
-    }
-
-  }, 1000)
 }
 function handleClickColor (liElement) {
   const blockingAction = [GAME_STATUS.BLOCKING, GAME_STATUS.FINISHED].includes(gameStatus);
@@ -73,9 +58,12 @@ function handleClickColor (liElement) {
   
   if (isMatch) {
     const isWin = getNotActiveElementList().length === 0
+    changeColorBackground(first)
     
     if (isWin) {
       showReplayButton()
+      timer.clear()
+      showTimerText('You Win!')
       gameStatus = GAME_STATUS.FINISHED
     }
     selections =[]
@@ -86,8 +74,9 @@ function handleClickColor (liElement) {
     selections[0].classList.remove('active')
     selections[1].classList.remove('active')
     selections = []
-    gameStatus = GAME_STATUS.PLAYING
-  }, 300)
+    if (gameStatus !== GAME_STATUS.FINISHED) gameStatus = GAME_STATUS.PLAYING
+    // if (timer.seconds <= 0) gameStatus = GAME_STATUS.FINISHED 
+  }, 400)
   gameStatus = GAME_STATUS.BLOCKING
 }
 function attachEventColorList () {
@@ -106,7 +95,6 @@ function handleReplayButton () {
   if (!replayButtonElement) return;
   replayButtonElement.addEventListener('click', (event) => {
     gameStatus = GAME_STATUS.PLAYING
-    time = GAME_TIME;
 
     const liElementlist = getColorElementList();
     if (liElementlist) {
@@ -114,19 +102,22 @@ function handleReplayButton () {
         cell.className = ""       
     })
     }
-    handleTimer()
+    startTimer()
     hideReplayButton()
     initColors()
     
   })
   
 }
+function startTimer () {
+  timer.start()
+}
 
 
 //main
 (() => {
-  handleTimer()
   initColors()
   attachEventColorList()
   handleReplayButton()
+  startTimer()
 }) ()

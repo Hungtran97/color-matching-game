@@ -1,3 +1,4 @@
+import { getColorBackground, getTimerElement } from "./selectors.js";
 
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -34,4 +35,38 @@ export const getRandomColorPairs = (count) => {
   shuffle(fullColorList);
 
   return fullColorList;
+}
+export function changeColorBackground(color) {
+  const backgroundElement = getColorBackground()
+  if (backgroundElement) backgroundElement.style.backgroundColor = color
+}
+export function showTimerText (text) {
+  const timerElement = getTimerElement()
+  if (timerElement) timerElement.textContent = text
+}
+export function createTimer ({seconds, onChange, onFinish}) {
+
+  let intervalID = null
+  function start () {
+    clear()
+    let currentSeconds = seconds
+    intervalID = setInterval(() => {
+      // if (onChange) onChange(currentSeconds)
+      onChange?.(currentSeconds)
+      currentSeconds--
+      if (currentSeconds < 0) {
+        clear()
+        onFinish?.()
+      }
+    }, 1000)
+  }
+
+  function clear() {
+    clearInterval(intervalID)
+  }
+
+  return {
+    start,
+    clear,
+  }
 }
